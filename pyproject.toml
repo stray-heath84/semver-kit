@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "semverkit"
+version = "0.1.0"
+description = "Parse and compare semantic versions (semver.org) with correct precedence rules."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "stray-heath84" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/stray-heath84/semver-kit"
+
+[tool.setuptools.packages.find]
+where = ["src"]
