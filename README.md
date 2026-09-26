@@ -55,11 +55,36 @@ except InvalidVersionError as e:
 `Version` instances are immutable and hashable, so they work fine as dict
 keys or in sets.
 
+### Range matching
+
+```python
+from semverkit import Range, satisfies
+
+r = Range.parse("^1.2.3")
+r.matches("1.4.0")       # True
+r.matches("2.0.0")       # False
+
+satisfies("1.9.9", ">=1.2.3 <2.0.0")   # True
+satisfies("2.0.0", "1.2.3 || 2.0.0")   # True
+```
+
+Comparators (`=`, `>`, `>=`, `<`, `<=`), caret (`^1.2.3`), and tilde
+(`~1.2.3`) are all supported. Space-separated comparators are ANDed
+together; `||` separates alternatives that are ORed. There must be no space
+between an operator and its version, and every version in a range must be a
+full `major.minor.patch` -- partial forms like `~1.2` or x-ranges (`1.x`)
+and hyphen ranges (`1.2.3 - 2.3.4`) aren't supported.
+
+Prerelease versions follow the same rule as npm's semver package: a
+prerelease only satisfies a range if some comparator in the matching set is
+pinned to that exact major.minor.patch and is itself a prerelease. So
+`^1.2.3` never matches `1.3.0-alpha`, but `^1.2.3-alpha.1` matches
+`1.2.3-alpha.5`.
+
 ## What this is not
 
-This library only parses and orders individual version strings. It does not
-implement range syntax (`^1.2.3`, `~1.2.3`, npm-style comparators) or
-version bumping. Those may show up later if the need arises.
+This library parses, orders, and range-matches version strings. It does not
+implement version bumping. That may show up later if the need arises.
 
 ## Testing
 
