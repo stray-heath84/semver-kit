@@ -22,7 +22,9 @@ _VERSION_RE = re.compile(
     r"$"
 )
 
-_IdentifierKey = Tuple[int, Union[int, str]]
+_IDENTIFIER_RE = re.compile(r"^(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)$")
+
+_IdentifierKey =Tuple[int, Union[int, str]]
 
 
 class InvalidVersionError(ValueError):
@@ -82,6 +84,63 @@ class Version:
             prerelease=match.group("prerelease") or "",
             build=match.group("buildmetadata") or "",
         )
+
+    def bump(self, part: str, prerelease_id: str = "") -> "Version":
+        """Return the next version after bumping ``part``.
+
+        ``part`` is "major", "minor", "patch" or "prerelease". Build metadata
+        is always dropped, since it describes one specific build. Bumping a
+        prerelease toward its own release (1.0.0-rc.1 -> major) just strips
+        the prerelease instead of skipping a number, matching how npm's
+        ``semver inc`` behaves.
+
+        For "prerelease", ``prerelease_id`` names the series (e.g. "rc").
+        A plain release moves to the next patch with ``<id>.0``; an existing
+        prerelease in the same series has its last numeric identifier
+        incremented; a different series restarts at ``<id>.0``.
+        """
+        if part not in ("major", "minor", "patch", "prerelease"):
+            raise ValueError(f"unknown version part: {part!r}")
+        if prerelease_id and part != "prerelease":
+            raise ValueError("prerelease_id only applies to a prerelease bump")
+
+        if part == "major":
+            if self.is_prerelease and (self.minor, self.patch) == (0, 0):
+                return Version(self.major, 0, 0)
+            return Version(self.major + 1, 0, 0)
+        if part == "minor":
+            if self.is_prerelease and self.patch == 0:
+                return Version(self.major, self.minor, 0)
+            return Version(self.major, self.minor + 1, 0)
+        if part == "patch":
+            if self.is_prerelease:
+                return Version(self.major, self.minor, self.patch)
+            return Version(self.major, self.minor, self.patch + 1)
+
+        series: Tuple[str, ...] = ()
+        if prerelease_id:
+            series = tuple(prerelease_id.split("."))
+            for ident in series:
+                if _IDENTIFIER_RE.match(ident) is None:
+                    raise InvalidVersionError(
+                        f"not a valid prerelease identifier: {prerelease_id!r}"
+                    )
+
+        current = self.prerelease_identifiers
+        if not current:
+            idents = series + ("0",)
+            return Version(self.major, self.minor, self.patch + 1, ".".join(idents))
+        if series and current[: len(series)] != series:
+            idents = series + ("0",)
+        else:
+            idents = list(current)
+            for i in range(len(idents) - 1, -1, -1):
+                if idents[i].isdigit():
+                    idents[i] = str(int(idents[i]) + 1)
+                    break
+            else:
+                idents.append("0")
+        return Version(self.major, self.minor, self.patch, ".".join(idents))
 
     @property
     def prerelease_identifiers(self) -> Tuple[str, ...]:

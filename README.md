@@ -55,6 +55,20 @@ except InvalidVersionError as e:
 `Version` instances are immutable and hashable, so they work fine as dict
 keys or in sets.
 
+### Bumping
+
+```python
+v = Version.parse("1.2.3+build.5")
+v.bump("minor")                  # 1.3.0
+v.bump("prerelease", "rc")       # 1.2.4-rc.0
+Version.parse("1.2.4-rc.0").bump("prerelease", "rc")   # 1.2.4-rc.1
+Version.parse("1.2.4-rc.1").bump("patch")              # 1.2.4
+```
+
+`bump` returns a new `Version` and drops build metadata. Bumping a
+prerelease toward the release it leads up to (`2.0.0-rc.1` with `major`)
+finalizes it rather than skipping to the next number.
+
 ### Range matching
 
 ```python
@@ -83,8 +97,9 @@ pinned to that exact major.minor.patch and is itself a prerelease. So
 
 ## What this is not
 
-This library parses, orders, and range-matches version strings. It does not
-implement version bumping. That may show up later if the need arises.
+This library parses, orders, bumps, and range-matches version strings. It
+does not guess at non-semver strings like `1.2` or `v1.2.3`; those are
+rejected by `Version.parse`.
 
 ## Testing
 
